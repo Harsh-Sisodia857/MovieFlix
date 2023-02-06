@@ -5,21 +5,24 @@ import Like from './common/like';
 import Pagination from './common/pagination';
 import { paginate } from './../utils/paginate';
 import ListGroup from './common/listGroup';
+import _ from 'lodash';
+
 
 class Movies extends Component {
   state = {
     movies: [],
     genres: [],
     pageSize: 4,
-    currentPage: 1
+    currentPage: 1,
+    sortColumn: { path: "title", order: "asc" },
   };
 
   componentDidMount() {
     const genres = [
-      { _id: "5b21ca3eeb7f6fbccd471888", name: "All Genres" },
-      ...getGenres(),
+      { _id: "", name: "All Genres" },
+      ...getGenres()
     ];
-    this.setState({ movies: getMovies(), genres});
+    this.setState({ movies: getMovies(), genres });
   }
 
   handleDelete = (movie) => {
@@ -39,29 +42,52 @@ class Movies extends Component {
   };
 
   handleGenreSelect = (genre) => {
-    this.setState({ selectedGenre: genre, currentPage : 1 });
+    console.log(genre);
+    this.setState({ selectedGenre: genre, currentPage: 1 });
   };
 
   handleSort = (path) => {
-    
-  }
+    const sortColumn = { ...this.state.sortColumn };
+    if (sortColumn.path === path)
+      sortColumn.order = sortColumn.order === "asc" ? "desc" : "asc";
+    else {
+      sortColumn.path = path;
+      sortColumn.order = "asc";
+    }
+    this.setState({ sortColumn });
+  };
+
+  renderSortIcon = (column) => {
+    if (column !== this.state.sortColumn.path) return null;
+    if (this.state.sortColumn.order === "asc")
+      return <i className="fa fa-sort-asc"></i>;
+    return <i className="fa fa-sort-desc"></i>;
+  };
 
   render() {
     const { length: count } = this.state.movies;
-    const { pageSize, currentPage, selectedGenre, movies } = this.state;
-
+    const { pageSize, currentPage, selectedGenre, movies, sortColumn } =
+      this.state;
     if (count === 0) return <p>There is no movies in the database</p>;
 
-    const filteredMovies = selectedGenre && selectedGenre._id
-      ? movies.filter((m) => m.genre._id === selectedGenre._id)
-      : movies;
 
-    const allMovies = paginate(filteredMovies, currentPage, pageSize);
+    const filteredMovies =
+      selectedGenre  && selectedGenre._id
+        ? movies.filter((m) => m.genre._id === selectedGenre._id)
+        : movies;
+
+    const sortedMovies = _.orderBy(
+      filteredMovies,
+      [sortColumn.path],
+      [sortColumn.order]
+    );
+
+    const allMovies = paginate(sortedMovies, currentPage, pageSize);
 
     return (
       <div className="container">
         <div className="row">
-          <div className="col-3 mt-3">
+          <div className="col-3 mt-5">
             <ListGroup
               items={this.state.genres}
               textProperty="name"
@@ -72,15 +98,23 @@ class Movies extends Component {
           </div>
           <div className="col">
             <p className="m-2">
-              Showing {allMovies.length} movies in the database
+              Showing {sortedMovies.length} movies in the database
             </p>
             <table className="table m-3">
               <thead>
                 <tr>
-                  <th onClick={() => this.handleSort('title')}>Title</th>
-                  <th onClick={() => this.handleSort('genre.name')}>Genre</th>
-                  <th onClick={() => this.handleSort('numberInStock')}>Stock</th>
-                  <th onClick={() => this.handleSort('dailyRentalRate')}>Rate</th>
+                  <th onClick={() => this.handleSort("title")}>
+                    Title {this.renderSortIcon("title")}
+                  </th>
+                  <th onClick={() => this.handleSort("genre.name")}>
+                    Genre {this.renderSortIcon("genre.name")}
+                  </th>
+                  <th onClick={() => this.handleSort("numberInStock")}>
+                    Stock {this.renderSortIcon("numberInStock")}
+                  </th>
+                  <th onClick={() => this.handleSort("dailyRentalRate")}>
+                    Rate {this.renderSortIcon("dailyRentalRate")}
+                  </th>
                   <th></th>
                   <th></th>
                 </tr>
